@@ -34,6 +34,7 @@ public class ParallelQuickSort
       new ThreadPoolExecutor(numberOfThreads, numberOfThreads, N,
         TimeUnit.SECONDS, new ArrayBlockingQueue<Runnable>(N));    
     // ex
+  	executor.execute(new Task(executor, list, 0 , N-1));
     System.out.println("active count " + executor.getActiveCount());
     while (executor.getActiveCount() > 0)
     {  try   { Thread.sleep(10); }
@@ -53,13 +54,20 @@ public class ParallelQuickSort
       this.high = high;
     }
     public void run()
-    {  // ex
-       // ex
-       // ex 
-       // ex
-       // ex  
-       // ex
-       // ex
+    {  
+    	if (high > low)
+    	{
+    		int temp = partition(list, low, high);
+    		executor.execute(new Task(executor,list, low, temp - 1));
+    		executor.execute(new Task(executor,list, temp + 1, high));
+    	}
+    	// ex
+        // ex
+        // ex 
+        // ex
+        // ex  
+        // ex
+        // ex
     }
   }
   /** Partition the array list[first..last] */
