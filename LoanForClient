@@ -1,0 +1,53 @@
+package ClientServer;
+
+public class LoanForClient implements java.io.Serializable 
+{ private double annualInterestRate;
+  private int numberOfYears;
+  private double loanAmount;
+  private double monthlyPayment;
+  private double totalPayment;
+  private java.util.Date loanDate;
+  public LoanForClient()
+  { 
+  }
+  public LoanForClient(double annualInterestRate, 
+	int numberOfYears, double loanAmount)
+  { this.annualInterestRate = annualInterestRate;
+    this.numberOfYears = numberOfYears;
+    this.loanAmount = loanAmount;
+    loanDate = new java.util.Date();
+  }
+  public double getAnnualInterestRate()
+  { return annualInterestRate;
+  }
+  public void setAnnualInterestRate(double annualInterestRate)
+  { this.annualInterestRate = annualInterestRate;
+  }
+  public int getNumberOfYears()
+  { return numberOfYears;
+  }
+  public void setNumberOfYears(int numberOfYears)
+  { this.numberOfYears = numberOfYears;
+  }
+  public double getLoanAmount()
+  { return loanAmount;
+  }
+  public void setLoanAmount(double loanAmount)
+  { this.loanAmount = loanAmount;
+  }
+  public double  getMonthlyPayment()
+  { return monthlyPayment;    
+  }
+  public void  setMonthlyPayment(double monthlyPayment)
+  { this.monthlyPayment = monthlyPayment;    
+  }
+  public double getTotalPayment()
+  { return totalPayment;    
+  }
+  public void setTotalPayment(double totalPayment)
+  { this.totalPayment = totalPayment;
+  }
+  public java.util.Date getLoanDate()
+  { return loanDate;
+  }
+}
