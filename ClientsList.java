@@ -23,6 +23,10 @@ public class ClientsList {
 		setClients(null);
 	}
 	
+	public boolean isEmpty() {
+		return (clients.isEmpty());
+	}
+	
 	public boolean nameExists(String name) {
 		return (clients.containsValue(name));
 	}
