@@ -27,9 +27,31 @@ public class ClientKey {
 	}
 
 	@Override
-    public boolean equals(Object obj) {
-        ClientKey other = (ClientKey)obj;
-        return ((other.getHostName() == hostName) &&
-                (other.getPort() == port));
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((hostName == null) ? 0 : hostName.hashCode());
+		result = prime * result + port;
+		return result;
 	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ClientKey other = (ClientKey) obj;
+		if (hostName == null) {
+			if (other.hostName != null)
+				return false;
+		} else if (!hostName.equals(other.hostName))
+			return false;
+		if (port != other.port)
+			return false;
+		return true;
+	}
+	
 }
