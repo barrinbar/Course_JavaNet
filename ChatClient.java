@@ -98,13 +98,10 @@ public class ChatClient extends Application {
 					socket = new Socket(host, 8000);
 
 					// Create an output stream to the server
-					DataOutputStream toServer = new DataOutputStream(socket.getOutputStream());
+					ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 
-					Platform.runLater(() -> {
-						ta.appendText("Sending my name " + name + " to the server\n");
-					});
-					toServer.writeChars(name);
+					toServer.writeObject(name);
 
 					Platform.runLater(() -> {
 						ta.appendText("Sent my name to the server\n");
@@ -114,7 +111,7 @@ public class ChatClient extends Application {
 					Platform.runLater(() -> {
 						ta.appendText("Read clients object from server\n");
 					});
-					if (clients == null) {
+					if (clients.isEmpty()) {
 						Platform.runLater(() -> {
 							ta.appendText("The name " + name + " is already taken, please choose a different name.\n");
 							tfName.setText("");
