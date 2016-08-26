@@ -1,7 +1,10 @@
 package chat;
 
-public class ClientKey {
+import java.io.Serializable;
 
+public class ClientKey implements Serializable {
+
+	private static final long serialVersionUID = 5222175381901044110L;
 	private int port = -1;
 	private String hostName = "";
 
