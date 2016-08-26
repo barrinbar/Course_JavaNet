@@ -5,21 +5,29 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 import chat.Message;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.geometry.Orientation;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
 public class ChatClient extends Application {
@@ -52,18 +60,31 @@ public class ChatClient extends Application {
 		textPane.setCenter(ta);
 		textPane.setTop(inputPane);
 		
-		BorderPane mainPane = new BorderPane();
-		mainPane.setLeft(textPane);
-		mainPane.setRight(lvClients);
-		lvClients.setPrefWidth(10);
-		Platform.runLater(() -> ta.appendText("Welcome, please enter your name to start chatting\n"));
+		lvClients.setOrientation(Orientation.VERTICAL);
+		lvClients.setPrefSize(120, 250);
+		lvClients.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+		VBox vBox = new VBox();
+	    vBox.getChildren().addAll(new Label("Connected peers:"), lvClients);
+		
+	    HBox hBox = new HBox();
+	    hBox.getChildren().addAll(textPane, vBox);
+	    hBox.setStyle("-fx-padding: 10;" +
+                "-fx-border-style: solid inside;" +
+                "-fx-border-width: 2;" +
+                "-fx-border-insets: 5;" +
+                "-fx-border-radius: 5;" +
+                "-fx-border-color: blue;");
+	    /*Pane mainPane = new Pane();
+	    mainPane.getChildren().add(hBox);*/
 
 		// Create a scene and place it in the stage
-		Scene scene = new Scene(mainPane, 450, 200);
+		Scene scene = new Scene(hBox/*, 450, 200*/);
 		primaryStage.setTitle("Chat Client"); // Set the stage title
 		primaryStage.setScene(scene); // Place the scene in the stage
 		primaryStage.show(); // Display the stage
 		primaryStage.setAlwaysOnTop(true);
+
+		Platform.runLater(() -> ta.appendText("Welcome, please enter your name to start chatting\n"));
 
 		tfName.setOnAction(e -> {
 			// If name is not empty - keep it
@@ -80,10 +101,19 @@ public class ChatClient extends Application {
 					DataOutputStream toServer = new DataOutputStream(socket.getOutputStream());
 					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 
+					Platform.runLater(() -> {
+						ta.appendText("Sending my name " + name + " to the server\n");
+					});
 					toServer.writeChars(name);
 
+					Platform.runLater(() -> {
+						ta.appendText("Sent my name to the server\n");
+					});
 					clients = (ClientsList)fromServer.readObject();
 
+					Platform.runLater(() -> {
+						ta.appendText("Read clients object from server\n");
+					});
 					if (clients == null) {
 						Platform.runLater(() -> {
 							ta.appendText("The name " + name + " is already taken, please choose a different name.\n");
@@ -138,14 +168,23 @@ public class ChatClient extends Application {
 				// Create an output stream to the server
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 
-				// Get text fields
-				Message message = new Message(name, tfMsg.getText().trim(), null);
-
+				ArrayList<String> dest;
+				
 				// Validate input
-				if (message.getMsg() == "")
+				if (tfMsg.getText().trim() == "")
 					// ignore
 					;
+				else if (lvClients.getSelectionModel().getSelectedIndex() == -1)
+					Platform.runLater(() -> ta.appendText("Please select destination.\n"));
 				else {
+
+					// Get fields
+					/*if (lvClients.getSelectionModel().getSelectedIndex() == -1)
+						dest = null;
+					else*/
+						dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
+					Message message = new Message(name, tfMsg.getText().trim(), dest);
+
 					// Send loan request to the server
 					toServer.writeObject(message);
 					Platform.runLater(() -> tfMsg.setText(""));
