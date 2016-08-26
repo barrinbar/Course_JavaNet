@@ -17,7 +17,7 @@ public class ChatServer extends Application
   private TextArea ta = new TextArea();
   private ServerSocket serverSocket;
   private Socket socket;
-  private ClientsList clients;
+  private ClientsList clients = new ClientsList();;
   
   @Override // Override the start method in the Application class
   public void start(Stage primaryStage)
@@ -43,17 +43,13 @@ public class ChatServer extends Application
         { ta.appendText("Server started at " 
           + new Date() + '\n');
         });
-        
-        // Init clients list
-        clients = new ClientsList();
-        
+
         while (true)
         { // Listen for a new connection request
           socket = serverSocket.accept();
           
-          
           Platform.runLater( () ->
-          { // Display the client number
+          { // Display the client info
             ta.appendText(socket.toString() + '\n');
           });
           // Create and start a new thread for the connection
@@ -65,6 +61,7 @@ public class ChatServer extends Application
       }
     }).start();
   }
+
   // Define the thread class for handling new connection
   class HandleAClient implements Runnable
   { private Socket socket; // A connected socket
@@ -79,28 +76,30 @@ public class ChatServer extends Application
     @SuppressWarnings("resource")
 	public void run()
     { try
-      { // Create data input and output streams
-    	BufferedReader dataFromClient
-        = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-        
+      {
     	ObjectInputStream fromClient = new ObjectInputStream(
           socket.getInputStream());
         ObjectOutputStream toClient = new ObjectOutputStream(
           socket.getOutputStream());
         
         // Receive client name
-        clientName = dataFromClient.readLine();
+        clientName = (String)fromClient.readObject();
+        
+    	Platform.runLater(() ->
+    	ta.appendText("Read name. It is: " + clientName + "\n"));
+    	
         clientKey = new ClientKey(socket.getPort(), socket.getInetAddress().getHostName());
-    	// Make sure client doesn't already exist
+
         if (!clients.clientExists(clientKey)) {
-	        if (clients.nameExists(clientName)) { // If the name already exists
-	        	// Inform the client
-	        	toClient.writeObject(null);
+	        if (clients.nameExists(clientName)) {
+	        	// Inform the client by sending an empty clients list
+	        	toClient.writeObject(new ClientsList());
 	        }
 	        else {
 	        	// Add the new client and send the updated list to the server
 	        	clients.addClient(clientKey, clientName);
-	        	toClient.writeObject(clients.sortByValue());
+	        	clients.sortByValue();
+	        	toClient.writeObject(clients);
 	        }
 	        
 	        // Continuously serve the client
