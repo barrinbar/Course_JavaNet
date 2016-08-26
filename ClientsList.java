@@ -24,22 +24,42 @@ public class ClientsList {
 	}
 	
 	public boolean isEmpty() {
+		if (clients == null)
+			return true;
 		return (clients.isEmpty());
 	}
 	
 	public boolean nameExists(String name) {
+		if (clients == null || clients.isEmpty())
+			return false;
 		return (clients.containsValue(name));
 	}
 	
 	public boolean clientExists(ClientKey key) {
+		if (clients == null || clients.isEmpty())
+			return false;
 		return (clients.containsKey(key));
 	}
 	
 	public void addClient(ClientKey key, String name) {
+		if (clients == null) {
+			clients = new HashMap<ClientKey, String>();
+		}
 		clients.put(key, name);
 	}
 	
-	public String findByKey(ClientKey key) {
+	public void removeClient(ClientKey key) throws Throwable {
+		if (clients.containsKey(key))
+			clients.remove(key);
+		else
+			throw new Throwable("Client not found"); 
+
+	}
+	
+	public String findByKey(ClientKey key) throws Throwable {
+		if (clients == null || clients.isEmpty())
+			throw new Throwable("Client not found"); 
+		
 		return clients.get(key);
 	}
 	
@@ -79,31 +99,7 @@ public class ClientsList {
         clients = result;
         return result;
     }
-	/*public <K, V extends Comparable<? super V>> Map<K, V> sortByValue( Map<K, V> map ) {
-        String name;
-        
-        HashMap<K, V> hm =
-                new HashMap<>();
 
-        for (Entry<K, V> entry : map.entrySet()) {
-            name = (String) entry.getValue();
-            hm.put(entry.getKey(), (V)name);
-        }
-
-        LinkedList<Map.Entry<K, V>> list = new LinkedList<>( hm.entrySet() );
-
-        Collections.sort(list, new Comparator<Map.Entry<K, V>>() {
-            public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
-                return (o1.getValue()).compareTo(o2.getValue());
-            }
-        });
-
-        Map<K, V> result = new LinkedHashMap<>();
-        for (Map.Entry<K, V> entry : list) {
-            result.put(entry.getKey(), entry.getValue());
-        }
-        return result;
-    }*/
 	public Map<ClientKey, String> getClients() {
 		return clients;
 	}
