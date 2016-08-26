@@ -1,5 +1,6 @@
 package chat;
 
+import java.io.Serializable;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -11,8 +12,9 @@ import java.util.Map.Entry;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 
-public class ClientsList {
+public class ClientsList implements Serializable {
 
+	private static final long serialVersionUID = 3788105916990447765L;
 	private Map<ClientKey, String> clients = null;
 	
 	public ClientsList(Map<ClientKey, String> clients) {
