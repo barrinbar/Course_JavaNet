@@ -1,15 +1,13 @@
-package chapter30;
+package chat;
 
 import java.util.ArrayList;
 
 public class Message {
 	private String msg;
-	private String sender;
 	private ArrayList<String> destination;
 	
 	public Message(String msg, String sender, ArrayList<String> destination) {
 		this.msg = msg;
-		this.sender = sender;
 		this.destination = new ArrayList<String>(destination);
 	}
 	
@@ -19,14 +17,6 @@ public class Message {
 
 	public void setMsg(String msg) {
 		this.msg = msg;
-	}
-
-	public String getSender() {
-		return sender;
-	}
-
-	public void setSender(String sender) {
-		this.sender = sender;
 	}
 
 	public ArrayList<String> getDestination() {
@@ -39,6 +29,6 @@ public class Message {
 
 	@Override
 	public String toString() {
-		return sender + ": " + msg;
+		return msg;
 	}
 }
