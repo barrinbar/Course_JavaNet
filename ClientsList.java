@@ -8,6 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -77,7 +78,7 @@ public class ClientsList implements Serializable {
 		return FXCollections.<String>observableList(new LinkedList<String>(clients.values()));		
 	}
 	
-	public <K, V extends Comparable<? super V>> Map<ClientKey, String> sortByValue() {
+	/*public <K, V extends Comparable<? super V>> Map<ClientKey, String> sortByValue() {
         
         HashMap<K, V> hm =
                 new HashMap<>();
@@ -100,7 +101,23 @@ public class ClientsList implements Serializable {
         }
         clients = result;
         return result;
-    }
+    }*/
+
+	public void sortByValue() {
+		clients = sortByValue(clients);
+	}
+	
+	private static <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+	    return map.entrySet()
+	              .stream()
+	              .sorted(Map.Entry.comparingByValue(/*Collections.reverseOrder()*/))
+	              .collect(Collectors.toMap(
+	                Map.Entry::getKey, 
+	                Map.Entry::getValue, 
+	                (e1, e2) -> e1, 
+	                LinkedHashMap::new
+	              ));
+	}
 
 	public Map<ClientKey, String> getClients() {
 		return clients;
