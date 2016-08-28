@@ -1,18 +1,14 @@
 package chat;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
-import java.util.HashMap;
 
 import chat.Message;
 import javafx.application.Application;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -26,7 +22,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
@@ -146,8 +141,8 @@ public class ChatClient extends Application {
 			// Create an output stream to the server
 			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 	
-			// Send a null indicator to the server
-			toServer.writeObject(null);
+			// Send an empty indicator to the server
+			toServer.writeObject(new Message("", null));
 		}
 	}
 
@@ -176,11 +171,8 @@ public class ChatClient extends Application {
 				else {
 
 					// Get fields
-					/*if (lvClients.getSelectionModel().getSelectedIndex() == -1)
-						dest = null;
-					else*/
-						dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
-					Message message = new Message(name, tfMsg.getText().trim(), dest);
+					dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
+					Message message = new Message(tfMsg.getText().trim(), dest);
 
 					// Send loan request to the server
 					toServer.writeObject(message);
@@ -215,7 +207,7 @@ public class ChatClient extends Application {
 						Platform.runLater(() -> {
 							ta.appendText(message.toString() + '\n');
 						});
-					} else if (obj instanceof HashMap) {
+					} else if (obj instanceof ClientsList) {
 						clients = (ClientsList) obj;
 						Platform.runLater(() ->
 								lvClients.setItems((ObservableList<String>) clients.getNamesList()));
