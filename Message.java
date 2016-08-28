@@ -6,7 +6,7 @@ public class Message {
 	private String msg;
 	private ArrayList<String> destination;
 	
-	public Message(String msg, String sender, ArrayList<String> destination) {
+	public Message(String msg, ArrayList<String> destination) {
 		this.msg = msg;
 		this.destination = new ArrayList<String>(destination);
 	}
