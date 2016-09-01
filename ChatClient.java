@@ -5,10 +5,14 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Observable;
+import java.util.Set;
 
 import chat.Message;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -24,6 +28,7 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import javafx.stage.WindowEvent;
 
 public class ChatClient extends Application {
 
@@ -33,7 +38,7 @@ public class ChatClient extends Application {
 	private ListView<String> lvClients = new ListView<>();
 
 	private String name;
-	private ClientsList clients = null;
+	//private ClientsList clients = null;
 	private Socket socket = null;
 
 	// Host name or ip
@@ -77,7 +82,14 @@ public class ChatClient extends Application {
 		primaryStage.setTitle("Chat Client"); // Set the stage title
 		primaryStage.setScene(scene); // Place the scene in the stage
 		primaryStage.show(); // Display the stage
-		primaryStage.setAlwaysOnTop(true);
+		primaryStage.setAlwaysOnTop(false);
+		primaryStage.setOnCloseRequest(
+			      new EventHandler<WindowEvent>()
+			    	{ public void handle(WindowEvent event)
+			    	  { Platform.exit();
+			    		System.exit(0);
+			    	  }
+			    	});
 
 		Platform.runLater(() -> ta.appendText("Welcome, please enter your name to start chatting\n"));
 
@@ -93,20 +105,22 @@ public class ChatClient extends Application {
 					socket = new Socket(host, 8000);
 
 					// Create an output stream to the server
-					ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
+					ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 
 					toServer.writeObject(name);
 
 					Platform.runLater(() -> {
 						ta.appendText("Sent my name to the server\n");
 					});
-					clients = (ClientsList)fromServer.readObject();
+					//clients = (ClientsList)fromServer.readObject();
+					Object obj = fromServer.readObject();
 
 					Platform.runLater(() -> {
 						ta.appendText("Read clients object from server\n");
 					});
-					if (clients.isEmpty()) {
+					//if (clients.isEmpty()) {
+					if (obj instanceof String) {
 						Platform.runLater(() -> {
 							ta.appendText("The name " + name + " is already taken, please choose a different name.\n");
 							tfName.setText("");
@@ -114,22 +128,24 @@ public class ChatClient extends Application {
 						});
 					} else {
 						Platform.runLater(() -> {
+							Collection<String> clientCollection = ((SerClients)obj).getClients();
 							// Update clients list and enable chatting
-							lvClients.setItems((ObservableList<String>) clients.getNamesList());
-							ta.appendText("Hello " + name + "\nYou are now connected to the chat.\n");
+//							lvClients.setItems((ObservableList<String>) clientSet);
+							lvClients.setItems(FXCollections.observableArrayList(clientCollection));
+							ta.appendText("Hello " + name + ", welcome to the chat.\n");
 							tfName.setDisable(true);
 							tfMsg.setDisable(false);
 						});
 
+						tfMsg.setOnAction(new MessageListener(socket));
 						new Thread(new ChatListener(socket)).start();
-					}
-				} catch (Exception e1) {
+					//}
+				} 
+				}catch (Exception e1) {
 					e1.printStackTrace();
 				}
 			}
 		});
-
-		tfMsg.setOnAction(new MessageListener(socket));
 	}
 
 	@Override
@@ -142,7 +158,7 @@ public class ChatClient extends Application {
 			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 	
 			// Send an empty indicator to the server
-			toServer.writeObject(new Message("", null));
+			toServer.writeObject(new Message("",""/*, null*/));
 		}
 	}
 
@@ -160,23 +176,26 @@ public class ChatClient extends Application {
 				// Create an output stream to the server
 				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
 
-				ArrayList<String> dest;
+				//ArrayList<String> dest;
 				
 				// Validate input
 				if (tfMsg.getText().trim() == "")
 					// ignore
 					;
-				else if (lvClients.getSelectionModel().getSelectedIndex() == -1)
-					Platform.runLater(() -> ta.appendText("Please select destination.\n"));
+				/*else if (lvClients.getSelectionModel().getSelectedIndex() == -1)
+					Platform.runLater(() -> ta.appendText("Please select destination.\n"));*/
 				else {
 
 					// Get fields
-					dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
-					Message message = new Message(tfMsg.getText().trim(), dest);
+					//dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
+					Message message = new Message(tfMsg.getText().trim(), tfName.getText().trim() /*, dest*/);
 
 					// Send loan request to the server
 					toServer.writeObject(message);
-					Platform.runLater(() -> tfMsg.setText(""));
+					Platform.runLater(() -> {
+						ta.appendText("Sent new message to server: " + message.getMsg() + "\n");
+						tfMsg.setText("");
+					});
 				}
 			} catch (IOException ex) {
 				ex.printStackTrace();
@@ -186,11 +205,13 @@ public class ChatClient extends Application {
 
 	private class ChatListener implements Runnable {
 
-		private ObjectInputStream fromServer;
+		//private ObjectInputStream fromServer;
 		private Message message;
+		private Socket socket;
 
 		ChatListener(Socket socket) throws IOException {
-			this.fromServer = new ObjectInputStream(socket.getInputStream());
+			this.socket = socket;
+			//this.fromServer = new ObjectInputStream(socket.getInputStream());
 		}
 
 		@Override
@@ -198,24 +219,29 @@ public class ChatClient extends Application {
 			// Create an output stream to the server
 			while (true) {
 				try {
+					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 					// Check if the server has sent a new message or an updated
 					// clients list
 					Object obj = fromServer.readObject();
 
 					if (obj instanceof Message) {
-						message = (Message) fromServer.readObject();
+						message = (Message) obj;
 						Platform.runLater(() -> {
 							ta.appendText(message.toString() + '\n');
 						});
-					} else if (obj instanceof ClientsList) {
-						clients = (ClientsList) obj;
-						Platform.runLater(() ->
-								lvClients.setItems((ObservableList<String>) clients.getNamesList()));
+					} else if (obj instanceof SerClients) {
+						//clients = (ClientsList) obj;
+						Collection<String> clientCollection = ((SerClients)obj).getClients();
+						lvClients.setItems(FXCollections.observableArrayList(clientCollection));
 					} else
 						throw new ClassNotFoundException(
 								"Class " + obj.getClass() + " not expected. Should be either Message or Hashmap");
-				} catch (ClassNotFoundException | IOException e) {
+				} catch (ClassNotFoundException e) {
 					e.printStackTrace();
+				} catch (IOException e) {
+					Platform.runLater(() ->
+					ta.appendText("Connection to server lost.\n"));
+					break;
 				}
 			}
 		}
