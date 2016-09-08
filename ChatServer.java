@@ -23,9 +23,7 @@ import javafx.stage.WindowEvent;
 public class ChatServer extends Application { // Text area for displaying
 												// contents
 	private TextArea ta = new TextArea();
-	private ServerSocket serverSocket;
 	private Socket socket;
-	private ClientsList clients = new ClientsList();
 	private Map<String, ObjectOutputStream> clientOutStreams;
 
 	@Override // Override the start method in the Application class
@@ -45,7 +43,7 @@ public class ChatServer extends Application { // Text area for displaying
 		});
 		new Thread(() -> {
 			try { // Create a server socket
-				serverSocket = new ServerSocket(8000);
+				ServerSocket serverSocket = new ServerSocket(8000);
 				clientOutStreams = new HashMap<>();
 				Platform.runLater(() -> {
 					ta.appendText("Server started at " + new Date() + '\n');
@@ -58,16 +56,14 @@ public class ChatServer extends Application { // Text area for displaying
 						ta.appendText(socket.toString() + '\n');
 					});
 					
-					ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
 					ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
+					ObjectOutputStream toClient = new ObjectOutputStream(socket.getOutputStream());
 
 					// Receive client name
 					String clientName;
 					try {
 						clientName = (String) fromClient.readObject();
-						
-						ClientKey clientKey = new ClientKey(socket.getPort(), socket.getInetAddress().getHostName());
-	
+
 						if (clientOutStreams.containsKey(clientName)) {
 							toClient.writeObject("Name already taken");
 						}
@@ -83,6 +79,8 @@ public class ChatServer extends Application { // Text area for displaying
 								clients.addClient(clientKey, clientName);
 								clients.sortByValue();*/
 								clientOutStreams.put(clientName, toClient);
+								toClient.writeObject("Welcome");
+								//toClient.writeObject(new Integer(1));
 /*								for (ClientKey client : clients.getClients().keySet()) {
 									clientOutStreams.get(client.getPort()).writeObject(clients);
 									Platform.runLater(() -> {
@@ -108,9 +106,11 @@ public class ChatServer extends Application { // Text area for displaying
 	class HandleAClient implements Runnable {
 		private Socket socket; // A connected socket
 		private String clientName = "";
+		private ObjectInputStream fromClient;
 
-		/** Construct a thread */
-		public HandleAClient(Socket socket, String clientName) {
+		/** Construct a thread 
+		 * @throws IOException */
+		public HandleAClient(Socket socket, String clientName) throws IOException {
 			this.socket = socket;
 			this.clientName = clientName;
 		}
@@ -122,20 +122,18 @@ public class ChatServer extends Application { // Text area for displaying
 				Platform.runLater(() -> {
 					ta.appendText("In thread of " + clientName +"\n");
 				});
-				SerClients ca = new SerClients(clientOutStreams.keySet());
-				// Send new clients list to all clients
-				for (ObjectOutputStream client : clientOutStreams.values()) {
-					client.writeObject(ca);
-				}	
+
+				this.fromClient = new ObjectInputStream(socket.getInputStream());
+				
 				// Continuously serve the client
 				while (true) {
-					ObjectInputStream fromClient = new ObjectInputStream(socket.getInputStream());
 
 					// Receive message from the client
 					Message message = (Message) fromClient.readObject();
 
 					// Check if user wants to disconnect
 					if (message.toString() == "") {
+						clientOutStreams.remove(clientName);
 						Platform.runLater(() -> {
 							ta.appendText(clientName + " has left the chat.\n");
 						});
@@ -155,10 +153,16 @@ public class ChatServer extends Application { // Text area for displaying
 						});
 					}
 				}
+				try {
+					socket.close();
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
 			} catch (SocketException ex) {
 				ex.printStackTrace();
 				try {
-					serverSocket.close();
+//					serverSocket.close();
 					socket.close();
 				} catch (IOException e) {
 					e.printStackTrace();
