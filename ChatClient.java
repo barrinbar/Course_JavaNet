@@ -35,11 +35,9 @@ public class ChatClient extends Application {
 	private TextField tfName = new TextField();
 	private TextField tfMsg = new TextField();
 	private TextArea ta = new TextArea();
-	private ListView<String> lvClients = new ListView<>();
 
 	private String name;
-	//private ClientsList clients = null;
-	private Socket socket = null;
+	private Collection<String> clientCollection = null;
 
 	// Host name or ip
 	String host = "localhost";
@@ -60,14 +58,8 @@ public class ChatClient extends Application {
 		textPane.setCenter(ta);
 		textPane.setTop(inputPane);
 		
-		lvClients.setOrientation(Orientation.VERTICAL);
-		lvClients.setPrefSize(120, 250);
-		lvClients.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
-		VBox vBox = new VBox();
-	    vBox.getChildren().addAll(new Label("Connected peers:"), lvClients);
-		
-	    HBox hBox = new HBox();
-	    hBox.getChildren().addAll(textPane, vBox);
+		HBox hBox = new HBox();
+	    hBox.getChildren().addAll(textPane);
 	    hBox.setStyle("-fx-padding: 10;" +
                 "-fx-border-style: solid inside;" +
                 "-fx-border-width: 2;" +
@@ -102,25 +94,20 @@ public class ChatClient extends Application {
 				// Establish connection with the server
 				//Socket socket;
 				try {
-					socket = new Socket(host, 8000);
+					Socket socket = new Socket(host, 8000);
 
-					// Create an output stream to the server
-					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
+					// Create input and output stream to the server
 					ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
+					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 
 					toServer.writeObject(name);
 
 					Platform.runLater(() -> {
 						ta.appendText("Sent my name to the server\n");
 					});
-					//clients = (ClientsList)fromServer.readObject();
-					Object obj = fromServer.readObject();
+					String nameOK = (String) fromServer.readObject();
 
-					Platform.runLater(() -> {
-						ta.appendText("Read clients object from server\n");
-					});
-					//if (clients.isEmpty()) {
-					if (obj instanceof String) {
+					if (!nameOK.equals("Welcome")) {
 						Platform.runLater(() -> {
 							ta.appendText("The name " + name + " is already taken, please choose a different name.\n");
 							tfName.setText("");
@@ -128,10 +115,6 @@ public class ChatClient extends Application {
 						});
 					} else {
 						Platform.runLater(() -> {
-							Collection<String> clientCollection = ((SerClients)obj).getClients();
-							// Update clients list and enable chatting
-//							lvClients.setItems((ObservableList<String>) clientSet);
-							lvClients.setItems(FXCollections.observableArrayList(clientCollection));
 							ta.appendText("Hello " + name + ", welcome to the chat.\n");
 							tfName.setDisable(true);
 							tfMsg.setDisable(false);
@@ -139,8 +122,7 @@ public class ChatClient extends Application {
 
 						tfMsg.setOnAction(new MessageListener(socket));
 						new Thread(new ChatListener(socket)).start();
-					//}
-				} 
+					}
 				}catch (Exception e1) {
 					e1.printStackTrace();
 				}
@@ -148,47 +130,27 @@ public class ChatClient extends Application {
 		});
 	}
 
-	@Override
-	public void stop() throws Exception {
-		// Inform server of disconnection
-		//Socket socket = new Socket(host, 8000);
-		
-		if (this.socket != null) {
-			// Create an output stream to the server
-			ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-	
-			// Send an empty indicator to the server
-			toServer.writeObject(new Message("",""/*, null*/));
-		}
-	}
-
 	// Handle message action
 	private class MessageListener implements EventHandler<ActionEvent> {
 		
-		Socket socket;
-		public MessageListener(Socket socket) {
+		private Socket socket;
+		private ObjectOutputStream toServer;
+		public MessageListener(Socket socket) throws IOException {
 			this.socket = socket;
+			// Create an output stream to the server
+			this.toServer = new ObjectOutputStream(socket.getOutputStream());
 		}
 		@Override
 		public void handle(ActionEvent e) {
 			try { // Establish connection with the server
-				//Socket socket = new serverSocket(host, 8000);
-				// Create an output stream to the server
-				ObjectOutputStream toServer = new ObjectOutputStream(socket.getOutputStream());
-
-				//ArrayList<String> dest;
-				
 				// Validate input
 				if (tfMsg.getText().trim() == "")
 					// ignore
 					;
-				/*else if (lvClients.getSelectionModel().getSelectedIndex() == -1)
-					Platform.runLater(() -> ta.appendText("Please select destination.\n"));*/
 				else {
 
 					// Get fields
-					//dest = new ArrayList<String>(lvClients.getSelectionModel().getSelectedItems());
-					Message message = new Message(tfMsg.getText().trim(), tfName.getText().trim() /*, dest*/);
+					Message message = new Message(tfMsg.getText().trim(), tfName.getText().trim());
 
 					// Send loan request to the server
 					toServer.writeObject(message);
@@ -205,21 +167,21 @@ public class ChatClient extends Application {
 
 	private class ChatListener implements Runnable {
 
-		//private ObjectInputStream fromServer;
+		private ObjectInputStream fromServer;
 		private Message message;
 		private Socket socket;
 
 		ChatListener(Socket socket) throws IOException {
 			this.socket = socket;
-			//this.fromServer = new ObjectInputStream(socket.getInputStream());
+			this.fromServer = new ObjectInputStream(socket.getInputStream());
 		}
 
 		@Override
 		public void run() {
-			// Create an output stream to the server
+			try {
+				// Create an output stream to the server
+				//ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 			while (true) {
-				try {
-					ObjectInputStream fromServer = new ObjectInputStream(socket.getInputStream());
 					// Check if the server has sent a new message or an updated
 					// clients list
 					Object obj = fromServer.readObject();
@@ -229,20 +191,17 @@ public class ChatClient extends Application {
 						Platform.runLater(() -> {
 							ta.appendText(message.toString() + '\n');
 						});
-					} else if (obj instanceof SerClients) {
-						//clients = (ClientsList) obj;
-						Collection<String> clientCollection = ((SerClients)obj).getClients();
-						lvClients.setItems(FXCollections.observableArrayList(clientCollection));
 					} else
 						throw new ClassNotFoundException(
-								"Class " + obj.getClass() + " not expected. Should be either Message or Hashmap");
+							"Class " + obj.getClass() + " not expected. Should be either Message or Hashmap");
+				
+			}
 				} catch (ClassNotFoundException e) {
-					e.printStackTrace();
-				} catch (IOException e) {
-					Platform.runLater(() ->
-					ta.appendText("Connection to server lost.\n"));
-					break;
-				}
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+				Platform.runLater(() ->
+				ta.appendText("Connection to server lost.\n"));
 			}
 		}
 	}
